@@ -36,6 +36,7 @@ const guildValues =
 	{name : 'errorLogChannel', defaultValue : -1},
 	{name : 'anonymousQuestionChannel', defaultValue : -1},
 	{name : 'bannedUsers', defaultValue : []},
+	{name : 'askChannel', defaultValue : -1},
 ];
 
 const rest = new REST({ version: '9' }).setToken(token);
@@ -75,6 +76,24 @@ client.on('ready', async function () {
 
 	client.on(Events.InteractionCreate, async function(interaction)
 	{
+		if(interaction.isModalSubmit())
+		{
+			switch(interaction.customId)
+			{
+				case 'anonymous-question-modal':
+				{
+					let question = interaction.fields.getTextInputValue('question-text');
+
+					await interaction.deferReply({ephemeral: true});
+
+					let result = await MessageManager.askQuestion(DataManager, interaction.guild, interaction.user.id, question);
+
+					interaction.editReply({content: result, ephemeral: true});
+					break;
+				}
+			}
+			return;
+		}
 		if(!interaction.isCommand() && !interaction.isUserContextMenuCommand())
 		{
 			return;
@@ -121,6 +140,7 @@ client.on('ready', async function () {
 
 	client.on(Events.GuildDelete, function(guild)
 	{
+		MessageManager.removeCollector(guild);
 		DataManager.removeGuildData(guild.id);
 	});
 
@@ -136,6 +156,8 @@ client.on('ready', async function () {
 		{
 			DataManager.logError(guild, 'Init error');
 		}
+
+		MessageManager.collectQuestions(DataManager, guild);
 	});
 	
 	isInit = true;

@@ -1,9 +1,10 @@
 const DiscordUtils = require('../scripts/discord-utils.js');
-const { EmbedBuilder } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 
 const minTimeBeetweenMessage = 1000 * 60 * 1;
 
 let messageData = {};
+let questionCollectors = {};
 
 function createQuestionEmbed(messageContent)
 {
@@ -13,13 +14,52 @@ function createQuestionEmbed(messageContent)
     return embed;
 }
 
-async function askQuestion(dataManager, guild, userId, messageContent)
+function checkUserError(dataManager, guild, userId)
 {
     let guildData = dataManager.getServerData(guild.id);
 
     if(guildData.bannedUsers.includes(userId))
     {
         return 'Vous avez été bannis des services de questions anonymes. Si vous pensez que c\'est une erreur, merci de contacter l\'administrateur·ice de votre serveur.';
+    }
+
+    if(!(guild.id in messageData))
+    {
+        return null;
+    }
+
+    if(!(userId in messageData[guild.id]))
+    {
+        return null;
+    }
+
+    let actualDate = Date.now();
+
+    if(messageData[guild.id][userId].length != 0)
+    {
+        let diff = actualDate - messageData[guild.id][userId][messageData[guild.id][userId].length - 1].date;
+        if(diff < minTimeBeetweenMessage)
+        {
+            return 'Vous devez attendre encore ' + Math.ceil((minTimeBeetweenMessage - diff) / 1000) + ' secondes avant de pouvoir reposer une question anonyme.';
+        }
+    }
+
+    return null;
+}
+
+async function askQuestion(dataManager, guild, userId, messageContent)
+{
+    let guildData = dataManager.getServerData(guild.id);
+
+    let userError = checkUserError(dataManager, guild, userId);
+    if(userError != null)
+    {
+        return userError;
+    }
+
+    if(messageContent.length == 0)
+    {
+        return 'Votre message est vide, je ne peux l\'envoyer tel quel, j\'en suis désolé.';
     }
 
     if(messageContent.length > 2000)
@@ -39,15 +79,6 @@ async function askQuestion(dataManager, guild, userId, messageContent)
 
     let actualDate = Date.now();
 
-    if(messageData[guild.id][userId].length != 0)
-    {
-        let diff = actualDate - messageData[guild.id][userId][messageData[guild.id][userId].length - 1].date;
-        if(diff < minTimeBeetweenMessage)
-        {
-            return 'Vous devez attendre encore ' + Math.ceil((minTimeBeetweenMessage - diff) / 1000) + ' secondes avant de pouvoir reposer une question anonyme.';
-        }
-    }
-
     let channel = await DiscordUtils.getChannelById(guild.client, guildData.anonymousQuestionChannel);
 
     if(channel == null)
@@ -65,6 +96,57 @@ async function askQuestion(dataManager, guild, userId, messageContent)
 
     messageData[guild.id][userId].push({'messageId': message.id, date: actualDate});
     return 'Message envoyé anonymement !';
+}
+
+async function collectQuestions(dataManager, guild)
+{
+    let channelId = dataManager.getServerData(guild.id).askChannel;
+    let channel = await DiscordUtils.getChannelById(guild.client, channelId);
+
+    removeCollector(guild);
+
+    if(channel == null)
+    {
+        return;
+    }
+
+    const questionModal = new ModalBuilder()
+								.setCustomId('anonymous-question-modal')
+								.setTitle('Question anonyme');
+
+    const questionRow = new ActionRowBuilder()
+        .addComponents(
+            new TextInputBuilder()
+                .setCustomId('question-text')
+                .setLabel('Posez votre question')
+                .setStyle(TextInputStyle.Paragraph)
+        );
+
+    questionModal.addComponents(questionRow);
+
+    const filter = i => i.customId === 'ask';
+    questionCollectors[guild.id] = channel.createMessageComponentCollector({ filter, time: 0 });
+
+    questionCollectors[guild.id].on('collect', async function(button)
+    {
+        let userError = checkUserError(dataManager, guild, button.user.id);
+        if(userError != null)
+        {
+            button.reply({content: userError, ephemeral: true});
+            return;
+        }
+        
+        button.showModal(questionModal);
+    });
+}
+
+function removeCollector(guild)
+{
+    if(guild.id in questionCollectors)
+    {
+        questionCollectors[guild.id].stop();
+        delete questionCollectors[guild.id];
+    }
 }
 
 function getAuthor(dataManager, guild, messageId)
@@ -91,5 +173,7 @@ function getAuthor(dataManager, guild, messageId)
 module.exports = 
 {
 	askQuestion,
+    collectQuestions,
+    removeCollector,
     getAuthor
 }

@@ -1,10 +1,10 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { ContextMenuCommandBuilder, ApplicationCommandType } = require('discord.js');
+const { ContextMenuCommandBuilder, ApplicationCommandType, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const DiscordUtils = require('../scripts/discord-utils.js');
 
 let allCommands = [];
 
-allCommands.push({
+/*allCommands.push({
 	data: new SlashCommandBuilder()
 		.setName('ask')
 		.setDescription('Ask anonymous question')
@@ -23,6 +23,33 @@ allCommands.push({
 		let result = await dataManager.MessageManager.askQuestion(dataManager, interaction.guild, interaction.user.id, question);
 
 		interaction.editReply({content: result, ephemeral: true});
+	}
+});*/
+
+allCommands.push({
+	data: new SlashCommandBuilder()
+		.setName('create-ask')
+		.setDescription('Ask anonymous question'),
+
+	async execute(interaction, dataManager) {
+		dataManager.initGuildData(interaction.guild.id);
+
+		const buttonRow = new ActionRowBuilder()
+			.addComponents(
+				new ButtonBuilder()
+					.setCustomId('ask')
+					.setLabel('Poser une question anonyme')
+					.setStyle(ButtonStyle.Primary)
+			);
+
+		let message = await interaction.channel.send({components: [buttonRow]});
+
+		dataManager.getServerData(interaction.guild.id).askChannel = message.channel.id;
+		dataManager.writeInData(interaction.guild.id);
+
+		dataManager.MessageManager.collectQuestions(dataManager, interaction.guild);
+		
+		interaction.reply({content: "Created", ephemeral: true});
 	}
 });
 
