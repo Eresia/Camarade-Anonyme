@@ -20,7 +20,7 @@ let allCommands = [];
 		let question = interaction.options.getString('question');
 		await interaction.deferReply({ephemeral: true});
 
-		let result = await dataManager.MessageManager.askQuestion(dataManager, interaction.guild, interaction.user.id, question);
+		let result = await dataManager.MessageManager.askQuestion(dataManager, interaction.guild, interaction.user, question);
 
 		interaction.editReply({content: result, ephemeral: true});
 	}

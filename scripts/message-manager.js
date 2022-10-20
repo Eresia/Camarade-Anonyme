@@ -2,6 +2,7 @@ const DiscordUtils = require('../scripts/discord-utils.js');
 const { EmbedBuilder, ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 
 const minTimeBeetweenMessage = 1000 * 60 * 1;
+const maxMessageSize = 2000;
 
 let messageData = {};
 let questionCollectors = {};
@@ -47,8 +48,9 @@ function checkUserError(dataManager, guild, userId)
     return null;
 }
 
-async function askQuestion(dataManager, guild, userId, messageContent)
+async function askQuestion(dataManager, guild, user, messageContent)
 {
+    let userId = user.id;
     let guildData = dataManager.getServerData(guild.id);
 
     let userError = checkUserError(dataManager, guild, userId);
@@ -62,9 +64,24 @@ async function askQuestion(dataManager, guild, userId, messageContent)
         return 'Votre message est vide, je ne peux l\'envoyer tel quel, j\'en suis désolé.';
     }
 
-    if(messageContent.length > 2000)
+    if(messageContent.length > maxMessageSize)
     {
-        return 'Votre message est trop long, je ne peux l\'envoyer tel quel, j\'en suis désolé.';
+        try
+        {
+            await user.createDM();
+            await user.send('\\_\\_\\_\\_\\_\\_\\_\\_\\_\\_\\_\\_\n\nUne copie de votre message pour ne pas le perdre :\n\n\\_\\_\\_\\_\\_\\_\\_\\_\\_\\_\\_\\_');
+            for(let i = 0; i < (messageContent.length / maxMessageSize); i++)
+            {
+                await user.send(messageContent.substring(i * maxMessageSize, (i + 1) * maxMessageSize));
+            }
+
+            return 'Votre message est trop long (maximum : ' + maxMessageSize + ' caractères), je ne peux l\'envoyer tel quel, j\'en suis désolé. Pour que vous ne perdiez pas, je vous l\'ai renvoyé en MP.';
+        }
+        catch(error)
+        {
+            console.log(error);
+            return 'Votre message est trop long (maximum : ' + maxMessageSize + ' caractères), je ne peux l\'envoyer tel quel, j\'en suis désolé. Une erreur m\'a empeché de vous l\'envoyer en MP.';
+        }
     }
 
     if(!(guild.id in messageData))

@@ -42,7 +42,8 @@ const guildValues =
 const rest = new REST({ version: '9' }).setToken(token);
 const client = new Client({ intents: 
 	[
-		GatewayIntentBits.Guilds
+		GatewayIntentBits.Guilds,
+		GatewayIntentBits.DirectMessages,
 	] 
 });
 
@@ -86,7 +87,7 @@ client.on('ready', async function () {
 
 					await interaction.deferReply({ephemeral: true});
 
-					let result = await MessageManager.askQuestion(DataManager, interaction.guild, interaction.user.id, question);
+					let result = await MessageManager.askQuestion(DataManager, interaction.guild, interaction.user, question);
 
 					interaction.editReply({content: result, ephemeral: true});
 					break;
