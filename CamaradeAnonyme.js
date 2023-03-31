@@ -9,7 +9,8 @@ const DiscordUtils = require('./scripts/discord-utils.js');
 const { exit } = require('process');
 
 const needRefreshCommands = false;
-const sendInitError = true;
+const sendInitError = false;
+const caughtException = true;
 
 if(!fs.existsSync('config.json'))
 {
@@ -116,18 +117,18 @@ client.on('ready', async function () {
 			try 
 			{
 				await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
-				DataManager.logError(interaction.guild, 'Command Error :\n\n' + executionError);
+				DataManager.logError(interaction.guild, 'Command ' + interaction.commandName + ' Error :\n\n' + executionError);
 			} 
 			catch(replyError)
 			{
 				try 
 				{
 					await interaction.editReply('There was an error while executing this command!');
-					DataManager.logError(interaction.guild, 'Command Error :\n\n' + replyError);
+					DataManager.logError(interaction.guild, 'Command ' + interaction.commandName + ' Error :\n\n' + replyError + '\n' + executionError);
 				}
 				catch(cantReplyError)
 				{
-					DataManager.logError(interaction.guild, 'Answer is too long');
+					DataManager.logError(interaction.guild, 'Command ' + interaction.commandName + ' Error : Answer is too long');
 				}
 			}
 		}
@@ -198,8 +199,25 @@ async function logError(guild, error)
 
 	if(channel != null)
 	{
-		channel.send('Info: ' + error);
+		try
+		{
+			await channel.send('Info: ' + error);
 	}
+		catch(error)
+		{
+			console.log('Can\'t log error : ' + error);
+		}
+	}
+}
+
+if(caughtException)
+{
+	process.once('uncaughtException', async function (err)
+	{
+		await DataManager.logError(await DiscordUtils.getGuildById(client, '1032270436018421811'), 'Uncaught exception: ' + err);
+		console.log('Uncaught exception: ' + err);
+		exit(1);
+	});
 }
 
 DataManager.refreshCommandForGuild = refreshCommandForGuild;
