@@ -9,7 +9,7 @@ const DiscordUtils = require('./scripts/discord-utils.js');
 const { exit } = require('process');
 
 const needRefreshCommands = false;
-const sendInitError = false;
+const sendInitError = true;
 const caughtException = true;
 
 if(!fs.existsSync('config.json'))
@@ -38,6 +38,10 @@ const guildValues =
 	{name : 'anonymousQuestionChannel', defaultValue : -1},
 	{name : 'bannedUsers', defaultValue : []},
 	{name : 'askChannel', defaultValue : -1},
+	{name : 'buttonName', defaultValue: 'Poser une question anonyme'},
+	{name : 'modalTitle', defaultValue: 'Question Anonyme'},
+	{name : 'modalSentence', defaultValue: 'Posez votre question'},
+	{name : 'embedTitle', defaultValue: 'Nouvelle question anonyme'},
 ];
 
 const rest = new REST({ version: '9' }).setToken(token);

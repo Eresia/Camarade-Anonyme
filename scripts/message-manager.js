@@ -7,10 +7,10 @@ const maxMessageSize = 2000;
 let messageData = {};
 let questionCollectors = {};
 
-function createQuestionEmbed(messageContent)
+function createQuestionEmbed(embedTitle, messageContent)
 {
     let embed = new EmbedBuilder();
-    embed.setTitle('Nouvelle question anonyme');
+    embed.setTitle(embedTitle);
     embed.setDescription(messageContent);
     return embed;
 }
@@ -109,7 +109,7 @@ async function askQuestion(dataManager, guild, user, messageContent)
         messageData[guild.id][userId].shift();
     }
 
-	let message = await channel.send({embeds: [createQuestionEmbed(messageContent)]});
+	let message = await channel.send({embeds: [createQuestionEmbed(guildData.embedTitle, messageContent)]});
 
     messageData[guild.id][userId].push({'messageId': message.id, date: actualDate});
     return 'Message envoyé anonymement !';
@@ -117,7 +117,8 @@ async function askQuestion(dataManager, guild, user, messageContent)
 
 async function collectQuestions(dataManager, guild)
 {
-    let channelId = dataManager.getServerData(guild.id).askChannel;
+    let guildData = dataManager.getServerData(guild.id);
+    let channelId = guildData.askChannel;
     let channel = await DiscordUtils.getChannelById(guild.client, channelId);
 
     removeCollector(guild);
@@ -127,15 +128,15 @@ async function collectQuestions(dataManager, guild)
         return;
     }
 
-    const questionModal = new ModalBuilder()
+    let questionModal = new ModalBuilder()
 								.setCustomId('anonymous-question-modal')
-								.setTitle('Question anonyme');
+								.setTitle(guildData.modalTitle);
 
-    const questionRow = new ActionRowBuilder()
+    let questionRow = new ActionRowBuilder()
         .addComponents(
             new TextInputBuilder()
                 .setCustomId('question-text')
-                .setLabel('Posez votre question')
+                .setLabel(guildData.modalSentence)
                 .setStyle(TextInputStyle.Paragraph)
         );
 

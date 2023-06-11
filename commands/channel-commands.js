@@ -28,12 +28,6 @@ let allChannelCommands = {
 	async execute(interaction, dataManager) {
 		dataManager.initGuildData(interaction.guild.id);
 
-		if(!interaction.member.permissions.has("ADMINISTRATOR"))
-		{
-			await interaction.reply({ content: 'You don\'t have permission for this command', ephemeral: true });
-			return;
-		}
-
 		let subcommand = interaction.options.getSubcommand();
 
 		await setChannel(interaction, dataManager, this.commandChannels[subcommand].description, this.commandChannels[subcommand].name, this.commandChannels[subcommand].callback);
