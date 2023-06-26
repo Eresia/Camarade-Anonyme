@@ -109,10 +109,18 @@ async function askQuestion(dataManager, guild, user, messageContent)
         messageData[guild.id][userId].shift();
     }
 
-	let message = await channel.send({embeds: [createQuestionEmbed(guildData.embedTitle, messageContent)]});
+    try
+    {
+        let message = await channel.send({embeds: [createQuestionEmbed(guildData.embedTitle, messageContent)]});
 
-    messageData[guild.id][userId].push({'messageId': message.id, date: actualDate});
-    return 'Message envoyé anonymement !';
+        messageData[guild.id][userId].push({'messageId': message.id, date: actualDate});
+        return 'Message envoyé anonymement !';
+    }
+    catch(error)
+    {
+        dataManager.logError(guild, 'Error: ' + error);
+        return 'Une erreur est survenue lors de l\'envoi de votre message anonyme. Un message anonyme a été envoyé à votre administrateur pour le prévenir.';
+    }
 }
 
 async function collectQuestions(dataManager, guild)

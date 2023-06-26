@@ -160,7 +160,7 @@ client.on('ready', async function () {
 	client.guilds.cache.forEach(async (guild) => {
 		if(sendInitError)
 		{
-			DataManager.logError(guild, 'Init error');
+			DataManager.logError(guild, 'Initialisation', false);
 		}
 
 		MessageManager.collectQuestions(DataManager, guild);
@@ -196,7 +196,7 @@ async function refreshCommandForGuild(guild)
 	}
 }
 
-async function logError(guild, error)
+async function logError(guild, error, sendGeneralIfNoLogChannel = true)
 {
 	let guildData = DataManager.getServerData(guild.id);
 	let channel = await DiscordUtils.getChannelById(guild.client, guildData.errorLogChannel);
@@ -206,11 +206,15 @@ async function logError(guild, error)
 		try
 		{
 			await channel.send('Info: ' + error);
-	}
+		}
 		catch(error)
 		{
 			console.log('Can\'t log error : ' + error);
 		}
+	}
+	else if(sendGeneralIfNoLogChannel && guild.id != '1032270436018421811')
+	{
+		await DataManager.logError(await DiscordUtils.getGuildById(client, '1032270436018421811'), 'Other Guild (' + guild.id + ' - ' + guild.name + ') Error: ' + error);
 	}
 }
 
